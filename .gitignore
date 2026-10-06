@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local hymn source/conversion files
+/hymn_data/
+
+# Local/generated converter test output
+/tools/test_output.json
+
+/android/build/
+
+# Local PPT test files
+/tools/test_ppt/*.pptx
