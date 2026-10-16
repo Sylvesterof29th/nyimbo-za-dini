@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../core/theme/theme_provider.dart';
 import '../hymns/hymns_page.dart';
 import '../favorites/favorites_page.dart';
-import '../settings/settings_page.dart';
 
 class MainNavigation extends StatefulWidget {
   final ThemeProvider themeProvider;
@@ -20,13 +19,12 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const HymnsPage(),
-      const FavoritesPage(),
-      SettingsPage(themeProvider: widget.themeProvider),
+      HymnsPage(themeProvider: widget.themeProvider),
+      FavoritesPage(themeProvider: widget.themeProvider),
     ];
 
     return Scaffold(
-      body: pages[_currentIndex],
+      body: IndexedStack(index: _currentIndex, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
@@ -44,11 +42,6 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.favorite_border),
             selectedIcon: Icon(Icons.favorite),
             label: 'Favorites',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
           ),
         ],
       ),

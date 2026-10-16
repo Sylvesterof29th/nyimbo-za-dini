@@ -1,14 +1,18 @@
-import 'hymns_details_page.dart';
-import '../../data/local/local_storage_service.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/theme/theme_provider.dart';
+import '../../data/local/local_storage_service.dart';
 import '../../data/models/hymn.dart';
 import '../../data/repositories/hymn_repositories.dart';
-import '../../shared/widgets/hymn_card.dart';
+import '../../shared/widgets/app_overflow_menu.dart';
 import '../../shared/widgets/diocese_app_bar.dart';
+import '../../shared/widgets/hymn_card.dart';
+import 'hymns_details_page.dart';
 
 class HymnsPage extends StatefulWidget {
-  const HymnsPage({super.key});
+  final ThemeProvider themeProvider;
+
+  const HymnsPage({super.key, required this.themeProvider});
 
   @override
   State<HymnsPage> createState() => _HymnsPageState();
@@ -16,7 +20,6 @@ class HymnsPage extends StatefulWidget {
 
 class _HymnsPageState extends State<HymnsPage> {
   final HymnRepository _repository = HymnRepository();
-
   final LocalStorageService _storage = LocalStorageService();
 
   List<Hymn> _hymns = [];
@@ -35,7 +38,6 @@ class _HymnsPageState extends State<HymnsPage> {
 
   Future<void> _loadHymns() async {
     final hymns = await _repository.getHymns();
-
     final favorites = await _storage.getFavoriteHymns();
 
     if (!mounted) return;
@@ -49,10 +51,11 @@ class _HymnsPageState extends State<HymnsPage> {
   }
 
   void _searchHymns(String query) {
+    final search = query.toLowerCase().trim();
+
     final results = _hymns.where((hymn) {
       final title = hymn.title.toLowerCase();
       final number = hymn.number.toLowerCase();
-      final search = query.toLowerCase();
 
       return title.contains(search) || number.contains(search);
     }).toList();
@@ -69,11 +72,15 @@ class _HymnsPageState extends State<HymnsPage> {
     if (_favoriteIds.contains(id)) {
       await _storage.removeFavorite(id);
 
+      if (!mounted) return;
+
       setState(() {
         _favoriteIds.remove(id);
       });
     } else {
       await _storage.addFavorite(id);
+
+      if (!mounted) return;
 
       setState(() {
         _favoriteIds.add(id);
@@ -84,15 +91,9 @@ class _HymnsPageState extends State<HymnsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const DioceseAppBar(
-        actions: [
-          IconButton(
-            onPressed: null,
-            icon: Icon(Icons.notifications_none_rounded),
-          ),
-        ],
+      appBar: DioceseAppBar(
+        actions: [AppOverflowMenu(themeProvider: widget.themeProvider)],
       ),
-
       body: Column(
         children: [
           Padding(
@@ -104,9 +105,7 @@ class _HymnsPageState extends State<HymnsPage> {
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        onPressed: () {
-                          _searchHymns('');
-                        },
+                        onPressed: () => _searchHymns(''),
                         icon: const Icon(Icons.clear_rounded),
                       )
                     : null,
@@ -118,7 +117,6 @@ class _HymnsPageState extends State<HymnsPage> {
               ),
             ),
           ),
-
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -142,6 +140,7 @@ class _HymnsPageState extends State<HymnsPage> {
                                 hymn: hymn,
                                 hymns: _filteredHymns,
                                 currentIndex: index,
+                                themeProvider: widget.themeProvider,
                               ),
                             ),
                           );

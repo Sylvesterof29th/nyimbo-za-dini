@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../core/theme/theme_provider.dart';
 import '../../data/local/local_storage_service.dart';
 import '../../data/models/hymn.dart';
 import '../../data/repositories/hymn_repositories.dart';
+import '../../shared/widgets/app_overflow_menu.dart';
 import '../../shared/widgets/diocese_app_bar.dart';
 import '../../shared/widgets/hymn_card.dart';
 import '../hymns/hymns_details_page.dart';
 
 class FavoritesPage extends StatefulWidget {
-  const FavoritesPage({super.key});
+  final ThemeProvider themeProvider;
+
+  const FavoritesPage({super.key, required this.themeProvider});
 
   @override
   State<FavoritesPage> createState() => _FavoritesPageState();
@@ -44,7 +48,6 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
       _isLoading = false;
     });
-    ;
   }
 
   Future<void> _removeFavorite(Hymn hymn) async {
@@ -67,7 +70,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
   }
 
   Future<void> _openHymn(Hymn hymn) async {
-    final currentIndex = _allHymns.indexWhere((item) => item.id == hymn.id);
+    final currentIndex = _favoriteHymns.indexWhere(
+      (item) => item.id == hymn.id,
+    );
 
     if (currentIndex == -1) return;
 
@@ -76,22 +81,24 @@ class _FavoritesPageState extends State<FavoritesPage> {
       MaterialPageRoute(
         builder: (_) => HymnDetailsPage(
           hymn: hymn,
-          hymns: _allHymns,
+          hymns: _favoriteHymns,
           currentIndex: currentIndex,
+          themeProvider: widget.themeProvider,
         ),
       ),
     );
 
     if (!mounted) return;
 
-    _loadFavorites();
+    await _loadFavorites();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const DioceseAppBar(),
-
+      appBar: DioceseAppBar(
+        actions: [AppOverflowMenu(themeProvider: widget.themeProvider)],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _favoriteHymns.isEmpty

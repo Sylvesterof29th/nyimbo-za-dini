@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/theme/theme_provider.dart';
 import '../../data/local/local_storage_service.dart';
 import '../../data/models/hymn.dart';
-import '../../shared/widgets/diocese_app_bar.dart';
+import '../../shared/widgets/app_overflow_menu.dart';
 
 class HymnDetailsPage extends StatefulWidget {
   final Hymn hymn;
   final List<Hymn> hymns;
   final int currentIndex;
+  final ThemeProvider themeProvider;
 
   const HymnDetailsPage({
     super.key,
     required this.hymn,
     required this.hymns,
     required this.currentIndex,
+    required this.themeProvider,
   });
 
   @override
@@ -73,10 +76,7 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
 
   void _copyLyrics() {
     final lyrics = widget.hymn.verses
-        .map(
-          (verse) =>
-              ['Ubeti wa ${verse.verseNumber}', ...verse.lines].join('\n'),
-        )
+        .map((verse) => verse.lines.join('\n'))
         .join('\n\n');
 
     Clipboard.setData(ClipboardData(text: '${widget.hymn.title}\n\n$lyrics'));
@@ -88,10 +88,7 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
 
   Future<void> _shareLyrics() async {
     final lyrics = widget.hymn.verses
-        .map(
-          (verse) =>
-              ['Ubeti wa ${verse.verseNumber}', ...verse.lines].join('\n'),
-        )
+        .map((verse) => verse.lines.join('\n'))
         .join('\n\n');
 
     await SharePlus.instance.share(
@@ -124,36 +121,50 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
   }
 
   void _goToPreviousHymn() {
-    if (widget.currentIndex > 0) {
-      final previousIndex = widget.currentIndex - 1;
+    if (widget.currentIndex <= 0) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HymnDetailsPage(
-            hymn: widget.hymns[previousIndex],
-            hymns: widget.hymns,
-            currentIndex: previousIndex,
-          ),
+    final previousIndex = widget.currentIndex - 1;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HymnDetailsPage(
+          hymn: widget.hymns[previousIndex],
+          hymns: widget.hymns,
+          currentIndex: previousIndex,
+          themeProvider: widget.themeProvider,
         ),
-      );
-    }
+      ),
+    );
   }
 
   void _goToNextHymn() {
-    if (widget.currentIndex < widget.hymns.length - 1) {
-      final nextIndex = widget.currentIndex + 1;
+    if (widget.currentIndex >= widget.hymns.length - 1) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HymnDetailsPage(
-            hymn: widget.hymns[nextIndex],
-            hymns: widget.hymns,
-            currentIndex: nextIndex,
-          ),
+    final nextIndex = widget.currentIndex + 1;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => HymnDetailsPage(
+          hymn: widget.hymns[nextIndex],
+          hymns: widget.hymns,
+          currentIndex: nextIndex,
+          themeProvider: widget.themeProvider,
         ),
-      );
+      ),
+    );
+  }
+
+  void _handleSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+
+    if (velocity < -300) {
+      // Swipe kushoto: wimbo unaofuata.
+      _goToNextHymn();
+    } else if (velocity > 300) {
+      // Swipe kulia: wimbo uliotangulia.
+      _goToPreviousHymn();
     }
   }
 
@@ -199,132 +210,118 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
             onPressed: _toggleFavorite,
             icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border),
           ),
+          AppOverflowMenu(themeProvider: widget.themeProvider),
         ],
       ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hymn number
-            // Hymn header
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'WIMBO ${hymn.number}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.8,
-                      color: Theme.of(context).colorScheme.primary,
+      body: GestureDetector(
+        onHorizontalDragEnd: _handleSwipe,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Namba ya wimbo.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'WIMBO ${hymn.number}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Title
-            Text(
-              hymn.title,
-              style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                height: 1.15,
+                ],
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            // Metadata
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _InfoChip(icon: Icons.category_outlined, text: hymn.category),
-                _InfoChip(icon: Icons.language_rounded, text: hymn.language),
+              // Jina la wimbo.
+              Text(
+                hymn.title,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  height: 1.15,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Aina na lugha ya wimbo.
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _InfoChip(icon: Icons.category_outlined, text: hymn.category),
+                  _InfoChip(icon: Icons.language_rounded, text: hymn.language),
+                ],
+              ),
+
+              if (hymn.author != null || hymn.composer != null) ...[
+                const SizedBox(height: 16),
+
+                if (hymn.author != null)
+                  Text(
+                    'Mwandishi: ${hymn.author}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+
+                if (hymn.composer != null)
+                  Text(
+                    'Mtunzi wa muziki: ${hymn.composer}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
               ],
-            ),
 
-            if (hymn.author != null || hymn.composer != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 24),
 
-              if (hymn.author != null)
-                Text(
-                  'Mwandishi: ${hymn.author}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-
-              if (hymn.composer != null)
-                Text(
-                  'Mtunzi wa muziki: ${hymn.composer}',
-                  style: const TextStyle(fontSize: 14),
-                ),
-            ],
-
-            const SizedBox(height: 24),
-
-            const Divider(),
-
-            const SizedBox(height: 24),
-
-            // Lyrics
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: hymn.verses.map((verse) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ubeti wa ${verse.verseNumber}',
-                        style: TextStyle(
-                          fontSize: _fontSize - 2,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      ...verse.lines.map(
-                        (line) => Padding(
-                          padding: const EdgeInsets.only(bottom: 5),
+              // Maneno ya wimbo.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: hymn.verses.map((verse) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: verse.lines.map((line) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
                           child: SelectableText(
                             line,
                             style: TextStyle(fontSize: _fontSize, height: 1.7),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
         ),
       ),
-
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Hymn navigation
+              // Vitufe vya Previous na Next.
               Row(
                 children: [
                   Expanded(
@@ -336,9 +333,7 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
                       label: const Text('Previous'),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: widget.currentIndex < widget.hymns.length - 1
@@ -353,9 +348,10 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
 
               const SizedBox(height: 8),
 
-              // Current hymn indicator
+              // Kiashiria cha nafasi ya wimbo.
               Text(
-                'Wimbo ${widget.hymn.number} • ${widget.currentIndex + 1} / ${widget.hymns.length}',
+                'Wimbo ${widget.hymn.number} • '
+                '${widget.currentIndex + 1} / ${widget.hymns.length}',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -365,7 +361,7 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
 
               const SizedBox(height: 10),
 
-              // Copy and Share
+              // Nakili na Shiriki.
               Row(
                 children: [
                   Expanded(
@@ -375,9 +371,7 @@ class _HymnDetailsPageState extends State<HymnDetailsPage> {
                       label: const Text('Nakili'),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: _shareLyrics,
